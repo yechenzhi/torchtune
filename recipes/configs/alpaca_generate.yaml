@@ -9,7 +9,7 @@
 # Model arguments
 model:
   _component_: torchtune.models.llama2.llama2_7b
-model_checkpoint: /tmp/llama2_native
+model_checkpoint: /tmp/llama2/consolidated.00.pth
 
 # Tokenizer arguments
 tokenizer:
@@ -18,5 +18,8 @@ tokenizer:
 
 # Generation arguments
 instruction: "Answer the question."
-input: "What is some cool music from the 1920s?"
-max_gen_len: 64
+input: "Why pytorch is so popular?"
+max_gen_len: 256
+
+# Environment
+dtype: bf16

@@ -8,7 +8,7 @@ import sys
 import torch
 from omegaconf import DictConfig
 
-from torchtune import config
+from torchtune import config, utils
 from torchtune.utils import get_device, get_logger, set_seed
 from torchtune.utils.generation import GenerationUtils
 
@@ -47,17 +47,20 @@ def recipe(
     set_seed()
 
     device = get_device()
-
-    with device:
+    dtype = utils.get_dtype(cfg.dtype, device)
+    with utils.set_default_dtype(dtype), device:
         decoder = config.instantiate(cfg.model, max_batch_size=1)
 
     # Load state_dict into decoder
     native_state_dict = torch.load(cfg.model_checkpoint, weights_only=True)
-    missing, unexpected = decoder.load_state_dict(native_state_dict, strict=False)
+    from torchtune.models.convert_weights import meta_to_tune
+    tune_state_dict = meta_to_tune(native_state_dict)
+    missing, unexpected = decoder.load_state_dict(tune_state_dict, strict=False)
+    # import pdb; pdb.set_trace()
 
     decoder.eval()
 
-    with torch.no_grad():
+    with utils.set_default_dtype(dtype), torch.no_grad():
         generations, _ = GenerationUtils(
             decoder_lm=decoder,
             eos_id=tokenizer.eos_id,
@@ -68,8 +71,8 @@ def recipe(
             min_gen_len=1,
             max_gen_len=cfg.max_gen_len,
             top_p=0,
-            top_k=1,
-            temperature=1.0,
+            top_k=200,
+            temperature=0.8,
             device=device,
         )
 

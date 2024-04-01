@@ -6,6 +6,7 @@
 
 from torchtune.datasets._alpaca import alpaca_dataset
 from torchtune.datasets._grammar import grammar_dataset
+from torchtune.datasets._hh import hh_dataset
 from torchtune.datasets._instruct import InstructDataset
 from torchtune.datasets._samsum import samsum_dataset
 from torchtune.datasets._slimorca import SlimOrcaDataset
@@ -13,6 +14,7 @@ from torchtune.datasets._slimorca import SlimOrcaDataset
 __all__ = [
     "alpaca_dataset",
     "grammar_dataset",
+    "hh_dataset",
     "samsum_dataset",
     "SlimOrcaDataset",
     "InstructDataset",

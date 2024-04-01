@@ -153,9 +153,10 @@ class EleutherEvalRecipe(EvalRecipeInterface):
     ) -> nn.Module:
         with utils.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(model_cfg)
+        from torchtune.models.convert_weights import meta_to_tune
+        model_state_dict = meta_to_tune(model_state_dict)
 
         model.load_state_dict(model_state_dict)
-
         # Validate model was loaded in with the expected dtype.
         utils.validate_expected_param_dtype(model.named_parameters(), dtype=self._dtype)
         logger.info(f"Model is initialized with precision {self._dtype}.")

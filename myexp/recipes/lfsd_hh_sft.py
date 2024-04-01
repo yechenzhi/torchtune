@@ -300,6 +300,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             cfg_dataset,
             tokenizer=self._tokenizer,
         )
+
         sampler = DistributedSampler(
             ds,
             num_replicas=1,
