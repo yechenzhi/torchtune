@@ -12,6 +12,7 @@ from torchtune.datasets._instruct import instruct_dataset, InstructDataset
 from torchtune.datasets._samsum import samsum_dataset
 from torchtune.datasets._slimorca import slimorca_dataset
 from torchtune.datasets._stack_exchanged_paired import stack_exchanged_paired_dataset
+from torchtune.datasets._ultrafeedback_cleaned import ultrafeedback_cleaned_dataset
 
 __all__ = [
     "alpaca_dataset",
@@ -24,5 +25,6 @@ __all__ = [
     "ChatDataset",
     "instruct_dataset",
     "chat_dataset",
+    "ultrafeedback_cleaned_dataset",
     "ConcatDataset",
 ]

@@ -54,6 +54,7 @@ class PreferenceDataset(Dataset):
     ) -> None:
         self._tokenizer = tokenizer
         self._data = load_dataset(source, **load_dataset_kwargs)
+        self._data=self._data.map(transform,num_proc=24)
         self.template = template
         self._transform = transform
         self._column_map = column_map
@@ -73,7 +74,7 @@ class PreferenceDataset(Dataset):
         return self._prepare_sample(sample)
 
     def _prepare_sample(self, sample: Mapping[str, Any]) -> Dict[str, List[int]]:
-        transformed_sample = self._transform(sample) if self._transform else sample
+        transformed_sample = sample
         prompt = self.template.format(transformed_sample, self._column_map)
 
         column_map = self._column_map or {}
