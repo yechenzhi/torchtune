@@ -5,5 +5,6 @@
 # LICENSE file in the root directory of this source tree.
 
 from .dpo import DPOLoss
+from .orpo import ORPOLoss
 
-__all__ = ["DPOLoss"]
+__all__ = ["DPOLoss", "ORPOLoss"]
