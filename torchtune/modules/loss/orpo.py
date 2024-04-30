@@ -62,7 +62,7 @@ class ORPOLoss(nn.Module):
         ratio = torch.log(sig_ratio)
         losses = self.beta * ratio
 
-        chosen_rewards = self.beta * (policy_chosen_logps.to(self.accelerator.device)).detach()
-        rejected_rewards = self.beta * (policy_rejected_logps.to(self.accelerator.device)).detach()
+        chosen_rewards = self.beta * (policy_chosen_logps).detach()
+        rejected_rewards = self.beta * (policy_rejected_logps).detach()
 
         return losses, chosen_rewards, rejected_rewards, torch.mean(ratio).item(), torch.mean(log_odds).item()

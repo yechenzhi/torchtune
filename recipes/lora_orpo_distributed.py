@@ -541,7 +541,7 @@ class LoRAORPORecipeDistributed(FTRecipeInterface):
             loss = loss_fct(logits, labels)
             return loss
 
-        labels = concatenated_labels.clone()
+        labels = concatenated_input_ids.clone()
         chosen_nll_loss = cross_entropy_loss(all_logits[:len_chosen], labels[:len_chosen])
 
         all_log_probs = self.get_batch_log_probs(all_logits, concatenated_labels, True)
@@ -638,7 +638,8 @@ class LoRAORPORecipeDistributed(FTRecipeInterface):
                     policy_chosen_log_probs,
                     policy_rejected_log_probs
                 )
-                loss = policy_nll_loss - orpo_loss.mean()
+                # loss = policy_nll_loss - orpo_loss.mean()
+                loss = policy_nll_loss
                 reward_accuracies = (chosen_rewards > rejected_rewards).float()
                 if (
                     self.total_training_steps % self._log_every_n_steps == 0
