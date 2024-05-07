@@ -54,7 +54,7 @@ class PreferenceDataset(Dataset):
     ) -> None:
         self._tokenizer = tokenizer
         self._data = load_dataset(source, **load_dataset_kwargs)
-        self._data=self._data.map(transform,num_proc=24)
+        self._data=self._data.map(transform,num_proc=48)
         self.template = template
         self._transform = transform
         self._column_map = column_map

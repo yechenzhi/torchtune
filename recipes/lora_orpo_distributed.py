@@ -121,8 +121,8 @@ class LoRAORPORecipeDistributed(FTRecipeInterface):
 
         # logging attributes
         self._output_dir = cfg.output_dir
-        self._log_every_n_steps = cfg.log_every_n_steps if cfg.log_every_n_steps else 1
-        self._log_peak_memory_every_n_steps = 100
+        self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
+        self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
 
         # training attributes
         self._enable_activation_checkpointing = cfg.enable_activation_checkpointing
@@ -541,7 +541,7 @@ class LoRAORPORecipeDistributed(FTRecipeInterface):
             loss = loss_fct(logits, labels)
             return loss
 
-        labels = concatenated_labels.clone()
+        labels = concatenated_input_ids.clone()
         chosen_nll_loss = cross_entropy_loss(all_logits[:len_chosen], labels[:len_chosen])
 
         all_log_probs = self.get_batch_log_probs(all_logits, concatenated_labels, True)
@@ -599,7 +599,8 @@ class LoRAORPORecipeDistributed(FTRecipeInterface):
 
     def train(self) -> None:
         """
-        The core training loop.
+        The core training loop. Supports training on subsets of the dataset using the
+        ``max_steps_per_epoch``.
         """
         # clean up before training begins
         utils.cleanup_before_training()
@@ -609,6 +610,14 @@ class LoRAORPORecipeDistributed(FTRecipeInterface):
         # zero out the gradients before starting training
         self._optimizer.zero_grad()
 
+        # Initialize tokens count and running loss (for grad accumulation)
+        t0 = time.perf_counter()
+        running_loss = 0
+        running_nll_loss = 0
+        running_orpo_loss = 0
+        running_odds = 0
+        num_tokens = 0
+
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
 
@@ -616,9 +625,8 @@ class LoRAORPORecipeDistributed(FTRecipeInterface):
             # in case shuffle is True
             self._sampler.set_epoch(curr_epoch)
 
-            for idx, batch in enumerate(
-                pbar := tqdm(self._dataloader, disable=not (rank == 0))
-            ):
+            pbar = tqdm(total=self._steps_per_epoch, disable=not (rank == 0))
+            for idx, batch in enumerate(self._dataloader):
                 if (
                     self.max_steps_per_epoch is not None
                     and (idx // self._gradient_accumulation_steps)
@@ -638,18 +646,48 @@ class LoRAORPORecipeDistributed(FTRecipeInterface):
                     policy_chosen_log_probs,
                     policy_rejected_log_probs
                 )
+
                 loss = policy_nll_loss - orpo_loss.mean()
                 reward_accuracies = (chosen_rewards > rejected_rewards).float()
-                if (
-                    self.total_training_steps % self._log_every_n_steps == 0
-                    and self._is_rank_zero
-                ):
-                    pbar.set_description(f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}")
-                    self._metric_logger.log_dict(
-                        {
-                            "loss": loss.item(),
-                            "policy_nll_loss": policy_nll_loss.item(),
-                            "orpo_loss": orpo_loss.mean().item(),
+
+                loss = loss / self._gradient_accumulation_steps
+                running_loss += loss
+
+                policy_nll_loss = policy_nll_loss / self._gradient_accumulation_steps
+                running_nll_loss += policy_nll_loss
+
+                orpo_loss = orpo_loss.mean() / self._gradient_accumulation_steps
+                running_orpo_loss += orpo_loss
+
+                loss.backward()
+
+                # Step with optimizer
+                if (idx + 1) % self._gradient_accumulation_steps == 0:
+                    self._optimizer.step()
+                    self._optimizer.zero_grad(set_to_none=True)
+                    self._lr_scheduler.step()
+
+                    # Update the number of steps when the weights are updated
+                    self.total_training_steps += 1
+
+                    loss_to_log = running_loss.item()
+                    policy_nll_loss_to_log = running_nll_loss.item()
+                    orpo_loss_to_log = running_orpo_loss.item()
+                    pbar.update(1)
+                    pbar.set_description(
+                        f"{curr_epoch+1}|{self.total_training_steps}|Loss: {loss_to_log}"
+                    )
+
+                    # Log per-step metrics
+                    if (
+                        self.total_training_steps % self._log_every_n_steps == 0
+                        and self._is_rank_zero
+                    ):
+                        time_per_step = time.perf_counter() - t0
+                        log_dict = {
+                            "loss": loss_to_log,
+                            "policy_nll_loss": policy_nll_loss_to_log,
+                            "orpo_loss": orpo_loss_to_log,
                             "lr": self._optimizer.param_groups[0]["lr"],
                             "rewards/chosen": chosen_rewards.mean().cpu(),
                             "rewards/rejected": rejected_rewards.mean().cpu(),
@@ -669,34 +707,26 @@ class LoRAORPORecipeDistributed(FTRecipeInterface):
                             "log_odds_ratio": log_odds_ratio,
                             "log_odds_chosen":log_odds_chosen,
                             "logits/chosen": policy_chosen_logits.detach().mean().cpu(),
-                            "gpu_resources": torch.cuda.memory_allocated(),
-                        },
-                        step=self.total_training_steps,  # Each step is unique, not limited to each epoch
-                    )
+                            "lr": self._optimizer.param_groups[0]["lr"],
+                            "tokens_per_second": num_tokens / time_per_step,
+                        }
+                        if self._log_peak_memory_stats:
+                            log_dict.update(utils.get_memory_stats(device=self._device))
+                        self._metric_logger.log_dict(
+                            log_dict,
+                            step=self.total_training_steps,
+                        )
 
-                loss = loss / self._gradient_accumulation_steps
-                loss.backward()
-
-                if (idx + 1) % self._gradient_accumulation_steps == 0:
-                    self._optimizer.step()
-                    self._optimizer.zero_grad(set_to_none=True)
-                    self._lr_scheduler.step()
-
-                    # Update the number of steps when the weights are updated
-                    self.total_training_steps += 1
-
-                if (
-                    self.total_training_steps % self._log_peak_memory_every_n_steps == 0
-                    and self._is_rank_zero
-                ):
-                    # Log peak memory for iteration
-                    memory_stats = utils.get_memory_stats(device=self._device)
-                    self._metric_logger.log_dict(
-                        memory_stats, step=self.total_training_steps
-                    )
+                    # Reset running stats for the next step
+                    running_loss = 0
+                    running_nll_loss = 0
+                    running_orpo_loss = 0
+                    num_tokens = 0
+                    t0 = time.perf_counter()
 
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
+
 
     def cleanup(self) -> None:
         if self._is_rank_zero:

@@ -42,12 +42,12 @@ dataset:
   max_seq_len: 4096
 seed: null
 shuffle: True
-batch_size: 2
+batch_size: 1
 
 # Optimizer and Scheduler
 optimizer:
   _component_: torch.optim.AdamW
-  lr: 2e-5
+  lr: 5e-6
 lr_scheduler:
   _component_: torchtune.modules.get_cosine_schedule_with_warmup
   num_warmup_steps: 100
@@ -59,7 +59,7 @@ loss:
 # Training
 epochs: 3
 max_steps_per_epoch: null
-gradient_accumulation_steps: 4
+gradient_accumulation_steps: 13
 compile: True
 
 # Logging

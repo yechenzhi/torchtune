@@ -37,7 +37,7 @@ checkpointer:
     pytorch_model-00002-of-00002.bin
   ]
   recipe_checkpoint: null
-  output_dir: /tmp/Mistral-7B-v0.1/orpo
+  output_dir: /tmp/Mistral-7B-v0.1/orpo_lora
   model_type: MISTRAL
 resume_from_checkpoint: False
 
@@ -62,7 +62,7 @@ loss:
   beta: 0.1
 
 # Training
-epochs: 5
+epochs: 3
 max_steps_per_epoch: null
 gradient_accumulation_steps: 8
 compile: True

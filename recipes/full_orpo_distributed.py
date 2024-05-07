@@ -27,7 +27,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 
 from torchtune import config, modules, utils
-
+from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.utils.activations import apply_selective_activation_checkpointing
 
@@ -373,9 +373,9 @@ class FullORPORecipeDistributed(FTRecipeInterface):
             batch_size=batch_size,
             sampler=sampler,
             collate_fn=partial(
-                utils.padded_collate,
+                utils.padded_collate_dpo,
                 padding_idx=self._tokenizer.pad_id,
-                ignore_idx=self._loss_fn.ignore_index,
+                ignore_idx=CROSS_ENTROPY_IGNORE_IDX,
             ),
         )
 
@@ -461,9 +461,8 @@ class FullORPORecipeDistributed(FTRecipeInterface):
             loss = loss_fct(logits, labels)
             return loss
 
-        labels = concatenated_labels.clone()
+        labels = concatenated_input_ids.clone()
         chosen_nll_loss = cross_entropy_loss(all_logits[:len_chosen], labels[:len_chosen])
-
         all_log_probs = self.get_batch_log_probs(all_logits, concatenated_labels, True)
 
         chosen_log_probs = all_log_probs[:len_chosen]
@@ -533,6 +532,9 @@ class FullORPORecipeDistributed(FTRecipeInterface):
         # Initialize tokens count and running loss (for grad accumulation)
         t0 = time.perf_counter()
         running_loss = 0
+        running_nll_loss = 0
+        running_orpo_loss = 0
+        running_odds = 0
         num_tokens = 0
 
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
@@ -569,6 +571,13 @@ class FullORPORecipeDistributed(FTRecipeInterface):
 
                 loss = loss / self._gradient_accumulation_steps
                 running_loss += loss
+
+                policy_nll_loss = policy_nll_loss / self._gradient_accumulation_steps
+                running_nll_loss += policy_nll_loss
+
+                orpo_loss = orpo_loss.mean() / self._gradient_accumulation_steps
+                running_orpo_loss += orpo_loss
+
                 loss.backward()
 
                 # Step with optimizer
@@ -580,6 +589,8 @@ class FullORPORecipeDistributed(FTRecipeInterface):
                     self.total_training_steps += 1
 
                     loss_to_log = running_loss.item()
+                    policy_nll_loss_to_log = running_nll_loss.item()
+                    orpo_loss_to_log = running_orpo_loss.item()
                     pbar.update(1)
                     pbar.set_description(
                         f"{curr_epoch+1}|{self.total_training_steps}|Loss: {loss_to_log}"
@@ -593,8 +604,8 @@ class FullORPORecipeDistributed(FTRecipeInterface):
                         time_per_step = time.perf_counter() - t0
                         log_dict = {
                             "loss": loss_to_log,
-                            "policy_nll_loss": policy_nll_loss.item(),
-                            "orpo_loss": orpo_loss.mean().item(),
+                            "policy_nll_loss": policy_nll_loss_to_log,
+                            "orpo_loss": orpo_loss_to_log,
                             "lr": self._optimizer.param_groups[0]["lr"],
                             "rewards/chosen": chosen_rewards.mean().cpu(),
                             "rewards/rejected": rejected_rewards.mean().cpu(),
@@ -626,6 +637,8 @@ class FullORPORecipeDistributed(FTRecipeInterface):
 
                     # Reset running stats for the next step
                     running_loss = 0
+                    running_nll_loss = 0
+                    running_orpo_loss = 0
                     num_tokens = 0
                     t0 = time.perf_counter()
 
