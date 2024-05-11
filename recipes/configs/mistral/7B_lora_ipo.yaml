@@ -37,7 +37,7 @@ checkpointer:
     hf_model_0002_2.pt 
   ]
   recipe_checkpoint: null
-  output_dir: /tmp/Mistral-7B-v0.1/sft_dpo_uf
+  output_dir: /tmp/Mistral-7B-v0.1/sft_ipo_uf
   model_type: MISTRAL
 resume_from_checkpoint: False
 
@@ -61,7 +61,7 @@ loss:
   _component_: torchtune.modules.loss.DPOLoss
   beta: 0.1
   label_smoothing: 0
-  loss_type: sigmoid
+  loss_type: ipo
 
 # Training
 epochs: 3
@@ -70,7 +70,7 @@ gradient_accumulation_steps: 8
 compile: False
 
 # Logging
-output_dir: /tmp/Mistral-7B-v0.1/lora_sft_dpo_output_uf/
+output_dir: /tmp/Mistral-7B-v0.1/lora_sft_ipo_output_uf/
 metric_logger:
   _component_: torchtune.utils.metric_logging.DiskLogger
   log_dir: ${output_dir}

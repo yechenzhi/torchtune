@@ -66,6 +66,7 @@ class InstructDataset(Dataset):
     ) -> None:
         self._tokenizer = tokenizer
         self._data = load_dataset(source, **load_dataset_kwargs)
+        self._data=self._data.map(transform,num_proc=48)
         self.template = template
         self._transform = transform
         self._column_map = column_map
@@ -80,7 +81,7 @@ class InstructDataset(Dataset):
         return self._prepare_sample(sample)
 
     def _prepare_sample(self, sample: Mapping[str, Any]) -> Tuple[List[int], List[int]]:
-        transformed_sample = self._transform(sample) if self._transform else sample
+        transformed_sample = sample
 
         prompt = self.template.format(transformed_sample, self._column_map)
         key_output = (
