@@ -46,9 +46,9 @@ class ChatbotArenaDataset(Dataset):
                 type(sample["response_a"]) != str
                 or type(sample["response_b"]) != str
                 or type(sample["prompt"]) != str
-                or type(ast.literal_eval(sample["prompt"])) != list
-                or type(ast.literal_eval(sample["response_a"])) != list
-                or type(ast.literal_eval(sample["response_b"])) != list
+                or type(ast.literal_eval(sample["prompt"])[0]) != str
+                or type(ast.literal_eval(sample["response_a"])[0]) != str
+                or type(ast.literal_eval(sample["response_b"])[0]) != str
             ):
 
                 index = self._rand_another()
