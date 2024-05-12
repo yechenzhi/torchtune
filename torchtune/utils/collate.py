@@ -133,3 +133,30 @@ def padded_collate_dpo(
     )
 
     return concatenated_input_ids, concatenated_labels
+
+
+def padded_collate_ca(
+    batch: List[Dict[str, Any]],
+    padding_idx: int = 0,
+) -> Tuple[torch.Tensor, torch.Tensor]:
+
+    conversation_a_input_ids = [
+        torch.tensor(ex["conversation_a_input_ids"]) for ex in batch
+    ]
+    conversation_b_input_ids = [
+        torch.tensor(ex["conversation_b_input_ids"]) for ex in batch
+    ]
+    a_masks = [torch.tensor(ex["a_masks"]) for ex in batch]
+    b_masks = [torch.tensor(ex["b_masks"]) for ex in batch]
+
+    assert len(conversation_a_input_ids) == len(conversation_b_input_ids)
+
+    to_pad_input_ids = conversation_a_input_ids + conversation_b_input_ids
+    to_pad_masks = a_masks + b_masks
+
+    concatenated_input_ids = pad_sequence(
+        to_pad_input_ids, batch_first=True, padding_value=padding_idx
+    )
+    concated_masks = pad_sequence(to_pad_masks, batch_first=True, padding_value=True)
+
+    return concatenated_input_ids, concated_masks

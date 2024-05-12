@@ -175,3 +175,17 @@ class StackExchangedPairedTemplate(InstructTemplate):
         prompt = cls.template.format(question=sample[key_prompt])
 
         return prompt
+
+
+class ChatbotArenaTemplate(InstructTemplate):
+    """
+    Prompt template for preference datasets similar to StackExchangedPaired.
+    """
+
+    template = "User: {question}\n\nAssistant: "
+
+    @classmethod
+    def format(cls, prompt: Mapping[str, Any]) -> str:
+        prompt = cls.template.format(question=prompt)
+
+        return prompt
