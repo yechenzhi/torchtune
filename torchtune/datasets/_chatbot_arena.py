@@ -4,11 +4,11 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import ast
 from typing import Any, Callable, Dict, List, Mapping, Optional
 
 import numpy as np
 from datasets import load_dataset
+
 from torch.utils.data import Dataset
 
 from torchtune.data import ChatbotArenaTemplate, InstructTemplate, Message
@@ -40,28 +40,37 @@ class ChatbotArenaDataset(Dataset):
         return np.random.randint(0, len(self._data))
 
     def __getitem__(self, index: int) -> Dict[str, List[int]]:
-        for _ in range(10):
-            sample = self._data[index]
-            if (
-                type(sample["response_a"]) != str
-                or type(sample["response_b"]) != str
-                or type(sample["prompt"]) != str
-                or type(ast.literal_eval(sample["prompt"])[0]) != str
-                or type(ast.literal_eval(sample["response_a"])[0]) != str
-                or type(ast.literal_eval(sample["response_b"])[0]) != str
-            ):
-
-                index = self._rand_another()
-                print("find another idx:", index)
-                continue
-            return self._prepare_sample(sample)
+        sample = self._data[index]
+        return self._prepare_sample(sample)
 
     def _prepare_sample(self, sample: Mapping[str, Any]) -> Dict[str, List[int]]:
         transformed_sample = self._transform(sample) if self._transform else sample
 
-        prompt_list = ast.literal_eval(transformed_sample["prompt"])
-        response_a_list = ast.literal_eval(transformed_sample["response_a"])
-        response_b_list = ast.literal_eval(transformed_sample["response_b"])
+        def process(s):
+            s = s.replace("null", '"NULL"')
+            s_list = s[1:-1].split('","')
+            s_list[0] = s_list[0][1:]
+            s_list[-1] = s_list[-1][:-1]
+            return s_list
+
+        prompt_list = process(transformed_sample["prompt"])
+        response_a_list = process(transformed_sample["response_a"])
+        response_b_list = process(transformed_sample["response_b"])
+
+        if len(prompt_list) != len(response_a_list) or len(prompt_list) != len(
+            response_b_list
+        ):
+            min_len = min(len(prompt_list), len(response_a_list), len(response_b_list))
+            prompt_list = prompt_list[:min_len]
+            response_a_list = response_a_list[:min_len]
+            response_b_list = response_b_list[:min_len]
+
+        assert len(prompt_list) == len(response_a_list) and len(prompt_list) == len(
+            response_b_list
+        )
+        assert len(prompt_list) == len(response_a_list) and len(prompt_list) == len(
+            response_b_list
+        )
 
         conversation_a, conversation_b = [], []
 
@@ -97,9 +106,7 @@ class ChatbotArenaDataset(Dataset):
 
         batch = dict(
             conversation_a_input_ids=conversation_a_input_ids,
-            a_masks=a_masks,
             conversation_b_input_ids=conversation_b_input_ids,
-            b_masks=b_masks,
         )
 
         return batch
@@ -107,7 +114,7 @@ class ChatbotArenaDataset(Dataset):
 
 def chatbot_arena_dataset(
     tokenizer: Tokenizer,
-    source: str = "/root/autodl-tmp/kaggle/lmsys-chatbot-arena/train.csv",
+    source: str = "/root/autodl-tmp/kaggle/lmsys-chatbot-arena/train_split.csv",
     max_seq_len: int = 4096,
 ) -> ChatbotArenaDataset:
     return ChatbotArenaDataset(

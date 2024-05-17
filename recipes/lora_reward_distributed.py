@@ -34,6 +34,7 @@ from torchtune.modules.peft.peft_utils import (
     validate_state_dict_for_lora,
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
+from torchtune.utils.pooling import pool_sequence_logits
 
 from tqdm import tqdm
 
@@ -309,7 +310,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
             # Load both the base model weights and (if available) the adapter weights. Both
             # of this should happen only on Rank 0
-            base_model_state_dict.pop("output.weight")
+            # base_model_state_dict.pop("output.weight")
             model.load_state_dict(base_model_state_dict, strict=False)
             if lora_weights_state_dict:
                 model.load_state_dict(lora_weights_state_dict, strict=False)
@@ -515,22 +516,19 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
     def concatenated_forward(
         self, model: nn.Module, batch: Tuple[torch.Tensor, torch.Tensor]
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        concatenated_input_ids, concated_masks = batch
+        concatenated_input_ids = batch
 
         concatenated_input_ids = concatenated_input_ids.to(self._device)
-        concated_masks = ~concated_masks.to(self._device)
 
         # formed by concatenating an equal number of "chosen" and "rejected".
         len_a = concatenated_input_ids.shape[0] // 2
 
         all_logits = model(concatenated_input_ids)
 
-        masked_logits = all_logits * concated_masks.unsqueeze(-1)
-        non_zero_counts = concated_masks.sum(dim=1, keepdim=True).clamp(min=1)
-        masked_avg_logits = masked_logits.sum(dim=1) / non_zero_counts
+        all_rewards = pool_sequence_logits(concatenated_input_ids, all_logits, 0)
 
-        rewards_a = masked_avg_logits[:len_a].squeeze(1)
-        rewards_b = masked_avg_logits[len_a:].squeeze(1)
+        rewards_a = all_rewards[:len_a]
+        rewards_b = all_rewards[len_a:]
 
         loss = -nn.functional.logsigmoid(rewards_a - rewards_b).mean()
 

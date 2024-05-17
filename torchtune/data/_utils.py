@@ -14,7 +14,7 @@ def truncate(
     max_seq_len: int,
     eos_id: Any,
 ) -> List[Any]:
-    tokens_truncated = tokens[:max_seq_len]
+    tokens_truncated = tokens[-max_seq_len:]
     if tokens_truncated[-1] != eos_id:
         tokens_truncated[-1] = eos_id
     return tokens_truncated

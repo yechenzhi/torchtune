@@ -85,6 +85,7 @@ For a list of all possible recipes, run `tune ls`."""
         # Have to reset the argv so that the recipe can be run with the correct arguments
         args.training_script = args.recipe
         args.training_script_args = args.recipe_args
+        args.master_port = 29502
         run(args)
 
     def _run_single_device(self, args: argparse.Namespace):

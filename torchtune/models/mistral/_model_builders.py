@@ -164,7 +164,7 @@ def lora_mistral_classifier_7b(
         apply_lora_to_mlp=apply_lora_to_mlp,
         apply_lora_to_output=apply_lora_to_output,
         num_classes=1,
-        vocab_size=32_000,
+        vocab_size=32_001,
         num_layers=32,
         num_heads=32,
         num_kv_heads=8,

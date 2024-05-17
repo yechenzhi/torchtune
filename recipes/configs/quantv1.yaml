@@ -10,14 +10,13 @@ model:
 
 checkpointer:
   _component_: torchtune.utils.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/Mistral-7B-Instruct-v0.2/reward
+  checkpoint_dir: /tmp/Mistral-7B-v0.1/reward
   checkpoint_files: [
-    hf_model_0001_0_v2.pt,
-    hf_model_0002_0_v2.pt,
-    hf_model_0003_0_v2.pt,
+    hf_model_0001_0.pt,
+    hf_model_0002_0.pt,
   ]
   recipe_checkpoint: null
-  output_dir: /tmp/Mistral-7B-Instruct-v0.2/reward/quant
+  output_dir: /tmp/Mistral-7B-v0.1/reward/quant
   model_type: MISTRAL
 
 device: cuda
@@ -25,5 +24,5 @@ dtype: bf16
 seed: 1234
 
 quantizer:
-  _component_: torchtune.utils.quantization.Int8DynActInt4WeightQuantizer
+  _component_: torchtune.utils.quantization.Int4WeightOnlyQuantizer
   groupsize: 256

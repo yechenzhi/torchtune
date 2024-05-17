@@ -385,7 +385,6 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             # delete the state_dict to free up memory; TODO check if this del is needed
             del state_dict
             gc.collect()
-
         if self._model_type == ModelType.PHI3_MINI:
             converted_state_dict[utils.MODEL_KEY] = phi3_hf_to_tune(merged_state_dict)
         elif self._model_type == ModelType.MISTRAL_REWARD:
