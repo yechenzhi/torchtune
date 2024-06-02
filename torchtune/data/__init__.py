@@ -7,6 +7,7 @@
 from torchtune.data._chat_formats import (
     ChatFormat,
     ChatMLFormat,
+    ChatBotMLFormat,
     Llama2ChatFormat,
     MistralChatFormat,
 )
@@ -28,6 +29,7 @@ from torchtune.data._utils import truncate, validate_messages
 __all__ = [
     "AlpacaInstructTemplate",
     "ChatFormat",
+    "ChatBotMLFormat",
     "CROSS_ENTROPY_IGNORE_IDX",
     "GrammarErrorCorrectionTemplate",
     "InstructTemplate",

@@ -222,3 +222,49 @@ class ChatMLFormat(ChatFormat):
                 Message(role=message.role, content=content, masked=message.masked),
             )
         return formatted_dialogue
+
+
+class ChatBotMLFormat(ChatFormat):
+    IM_START, IM_END, IM_EOT = "<|start_header_id|>", "<|end_header_id|>", "<|eot_id|>"
+    system = f"{IM_START}system{IM_END}\n\n{{content}}{IM_EOT}\n"
+    user = f"{IM_START}user{IM_END}\n\n{{content}}{IM_EOT}\n"
+    assistant_a = f"{IM_START}assistant A{IM_END}\n\n{{content}}{IM_EOT}"
+    assistant_b = f"{IM_START}assistant B{IM_END}\n\n{{content}}{IM_EOT}"
+
+    @classmethod
+    def format(
+        cls,
+        sample: List[Message],
+    ) -> List[Message]:
+        """
+        Format user and system messages with appropriate tags.
+
+        Args:
+            sample (List[Message]): a single conversation, structured as a list
+                of `Message` objects
+
+        Returns:
+            The formatted list of messages
+        """
+        formatted_dialogue = []
+        for message in sample:
+            content = ""
+            if message.role == "system":
+                content = cls.system.format(content=message.content)
+            elif message.role == "user":
+                content = cls.user.format(
+                    content=message.content,
+                )
+            elif message.role == "assistant_a":
+                content = cls.assistant_a.format(
+                    content=message.content,
+                )
+            elif message.role == "assistant_b":
+                content = cls.assistant_b.format(
+                    content=message.content,
+                )
+            assert content != ""
+            formatted_dialogue.append(
+                Message(role=message.role, content=content, masked=message.masked),
+            )
+        return formatted_dialogue
