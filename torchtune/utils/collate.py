@@ -70,6 +70,20 @@ def padded_collate(
         )
     return {"tokens": input_ids, "labels": labels}
 
+def padded_collate_cls(
+    batch: List[Dict[str, List[int]]],
+    padding_idx: int = 0,
+) -> Dict[str, torch.Tensor]:
+    input_ids = pad_sequence(
+        [torch.tensor(x["tokens"]) for x in batch],
+        batch_first=True,
+        padding_value=padding_idx,
+    )
+    labels = torch.tensor([x["label"] for x in batch])
+        
+    return {"tokens": input_ids, "labels": labels}
+
+
 
 def padded_collate_dpo(
     batch: List[Dict[str, List[int]]],

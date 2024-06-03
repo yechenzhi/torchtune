@@ -347,19 +347,20 @@ class TikTokenTokenizer(Tokenizer):
         Returns:
             Tuple[List[int], List[bool]]: The list of token ids and the list of masks.
         """
-        tokens = [self.bos_id]
-        # bos and eos are always masked
-        mask = [True]
+        # tokens = [self.bos_id]
+        # # bos and eos are always masked
+        # mask = [True]
+        tokens, mask = [], []
         for message in messages:
             tokenized_message = self.tokenize_message(
                 message, tokenize_header=tokenize_header
             )
             tokens = tokens + tokenized_message
             mask = mask + ([message.masked] * len(tokenized_message))
-            if max_seq_len and len(tokens) >= max_seq_len:
-                break
-        tokens = tokens + [self.eos_id]
-        mask = mask + [True]
+            # if max_seq_len and len(tokens) >= max_seq_len:
+            #     break
+        # tokens = tokens + [self.eos_id]
+        # mask = mask + [True]
         if max_seq_len:
             tokens = truncate(tokens, max_seq_len, self.eos_id)
             mask = truncate(mask, max_seq_len, True)

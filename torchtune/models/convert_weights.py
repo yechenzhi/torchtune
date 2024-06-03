@@ -41,7 +41,7 @@ _FROM_HF = {
     "model.layers.{}.input_layernorm.weight": "layers.{}.sa_norm.scale",
     "model.layers.{}.post_attention_layernorm.weight": "layers.{}.mlp_norm.scale",
     "model.norm.weight": "norm.scale",
-    "lm_head.weight": "output.weight",
+    "score.weight": "output.weight",
 }
 
 

@@ -29,7 +29,7 @@ from ._generation import generate
 from ._profiler import profiler
 from ._version import torch_version_ge
 from .argparse import TuneRecipeArgumentParser
-from .collate import padded_collate, padded_collate_dpo
+from .collate import padded_collate, padded_collate_dpo, padded_collate_cls
 from .constants import (  # noqa
     ADAPTER_CONFIG,
     ADAPTER_KEY,
@@ -59,6 +59,7 @@ from .precision import (
 )
 from .quantization import get_quantizer_mode
 from .seed import set_seed
+from .pooling import pool_sequence_logits
 
 __all__ = [
     "transform_opt_state_dict",
@@ -76,6 +77,7 @@ __all__ = [
     "get_full_finetune_fsdp_wrap_policy",
     "padded_collate",
     "padded_collate_dpo",
+    "padded_collate_cls",
     "set_activation_checkpointing",
     "set_default_dtype",
     "set_seed",
@@ -88,4 +90,5 @@ __all__ = [
     "profiler",
     "get_quantizer_mode",
     "generate",
+    "pool_sequence_logits",
 ]

@@ -11,7 +11,7 @@ from datasets import load_dataset
 
 from torch.utils.data import Dataset
 
-from torchtune.data import ChatFormat, ChatBotMLFormat, InstructTemplate, Message
+from torchtune.data import InstructTemplate, Message
 
 from torchtune.modules.tokenizers import Tokenizer
 
@@ -20,13 +20,11 @@ class ChatbotArenaDataset(Dataset):
         self,
         tokenizer: Tokenizer,
         source: str,
-        chat_format: Optional[ChatFormat] = None,
         max_seq_len: Optional[int] = None,
         **load_dataset_kwargs: Dict[str, Any],
     ) -> None:
         self._tokenizer = tokenizer
         self._data = load_dataset("csv", data_files=source, **load_dataset_kwargs)
-        self.chat_format = chat_format
         self.max_seq_len = max_seq_len
 
     def __len__(self):
@@ -63,25 +61,34 @@ class ChatbotArenaDataset(Dataset):
                     prompt_list, response_a_list, response_b_list
                 ):
             messages.append(Message(role="user", content=prompt)),
-            messages.append(Message(role="assistant_a", content=response_a)),
-            messages.append(Message(role="assistant_b", content=response_b)),
+            messages.append(Message(role="assistant A", content=response_a)),
+            messages.append(Message(role="assistant B", content=response_b)),
 
-        messages = self.chat_format.format(messages)
-        tokens, mask = self._tokenizer.tokenize_messages(
+        # messages = self.chat_format.format(messages)
+        tokens, _ = self._tokenizer.tokenize_messages(
             messages, max_seq_len=self.max_seq_len
         )
-        return messages, tokens
+
+        label = 2
+        if sample['winner_model_a'] == 1:
+            label = 0
+        elif sample['winner_model_b'] == 1:
+            label = 1 
+        else:
+            label = 2
+        
+        data = dict(tokens=tokens, label=label)
+        return data
 
     
 def chatbot_arena_dataset(
     tokenizer: Tokenizer,
-    source: str = "/root/dataDisk/full_val.csv ",
+    source: str = "/root/dataDisk/full_train.csv",
     max_seq_len: int = 4096,
 ) -> ChatbotArenaDataset:
     return ChatbotArenaDataset(
         tokenizer=tokenizer,
         source=source,
-        chat_format=ChatBotMLFormat(),
         max_seq_len=max_seq_len,
         split="train",
     )

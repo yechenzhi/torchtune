@@ -274,7 +274,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             )
 
             # Load both the model weights. This should happen only on Rank 0
-            model.load_state_dict(model_state_dict)
+            model_state_dict.pop('output.weight')
+            model.load_state_dict(model_state_dict, strict=False)
 
         else:
             # For non-zero ranks, load the model on meta device
@@ -398,9 +399,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             batch_size=batch_size,
             sampler=sampler,
             collate_fn=partial(
-                utils.padded_collate,
-                padding_idx=self._tokenizer.pad_id,
-                ignore_idx=self._loss_fn.ignore_index,
+                utils.padded_collate_cls,
+                padding_idx=self._tokenizer.pad_id
             )
             if not packed
             else None,
@@ -501,14 +501,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 input_pos = (
                     input_pos.to(self._device) if input_pos is not None else None
                 )
-
+                
                 logits = self._model(tokens, mask=mask, input_pos=input_pos)
-                # Shift so that tokens < n predict n
-                logits = logits[..., :-1, :].contiguous()
-                labels = labels[..., 1:].contiguous()
-                logits = logits.transpose(1, 2)
-                # Compute loss
-                loss = self._loss_fn(logits, labels)
+                pooled_logits = utils.pool_sequence_logits(tokens, logits,0)
+
+                loss = self._loss_fn(pooled_logits, labels)
 
                 loss = loss / self._gradient_accumulation_steps
                 running_loss += loss

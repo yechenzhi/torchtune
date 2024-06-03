@@ -27,9 +27,10 @@ def truncate(
     Returns:
         List[Any]: truncated list of tokens
     """
-    tokens_truncated = tokens[:max_seq_len]
-    if eos_id is not None and tokens_truncated[-1] != eos_id:
-        tokens_truncated[-1] = eos_id
+    # tokens_truncated = tokens[:max_seq_len]
+    tokens_truncated = tokens[-max_seq_len:]
+    # if eos_id is not None and tokens_truncated[-1] != eos_id:
+    #     tokens_truncated[-1] = eos_id
     return tokens_truncated
 
 
