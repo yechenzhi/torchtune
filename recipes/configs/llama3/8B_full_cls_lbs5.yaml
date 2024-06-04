@@ -27,7 +27,7 @@ tokenizer:
 dataset:
   _component_: torchtune.datasets.chatbot_arena_dataset
 seed: null
-shuffle: False
+shuffle: True
 
 # Model Arguments
 model:
@@ -35,20 +35,20 @@ model:
 
 checkpointer:
   _component_: torchtune.utils.FullModelHFCheckpointer
-  checkpoint_dir: /root/dataDisk/lmsys/8bcls/
+  checkpoint_dir: /root/dataDisk/lmsys/FsfairX-LLaMA3-RM-v0.1/
   checkpoint_files: [
-    hf_model_0001_0.pt,
-    hf_model_0002_0.pt,
-    hf_model_0003_0.pt,
-    hf_model_0004_0.pt
+    model-00001-of-00004.safetensors,
+    model-00002-of-00004.safetensors,
+    model-00003-of-00004.safetensors,
+    model-00004-of-00004.safetensors
   ]
   recipe_checkpoint: null
-  output_dir: /root/dataDisk/lmsys/8bcls
+  output_dir: /root/dataDisk/lmsys/8bcls_lbs5/
   model_type: LLAMA3
 resume_from_checkpoint: False
 
 # Fine-tuning arguments
-batch_size: 2
+batch_size: 4
 epochs: 1
 
 optimizer:
@@ -59,7 +59,7 @@ optimizer:
 loss:
   _component_: torch.nn.CrossEntropyLoss
 max_steps_per_epoch: null
-gradient_accumulation_steps: 96
+gradient_accumulation_steps: 48
 
 
 # Training env
@@ -76,6 +76,6 @@ dtype: bf16
 metric_logger:
   _component_: torchtune.utils.metric_logging.WandBLogger
   log_dir: ${output_dir}
-output_dir: /root/dataDisk/lmsys/8bcls/
+output_dir: /root/dataDisk/lmsys/8bcls_lbs5/
 log_every_n_steps: 1
 log_peak_memory_stats: False

@@ -32,7 +32,7 @@ from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.utils.activations import apply_selective_activation_checkpointing
 
 from tqdm import tqdm
-
+from transformers.trainer_pt_utils import LabelSmoother
 
 log = utils.get_logger("DEBUG")
 
@@ -213,6 +213,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             else None,
         )
 
+        self.label_smoother = LabelSmoother(epsilon=0.05)
         self._loss_fn = config.instantiate(cfg.loss)
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
@@ -504,8 +505,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 
                 logits = self._model(tokens, mask=mask, input_pos=input_pos)
                 pooled_logits = utils.pool_sequence_logits(tokens, logits,0)
-
-                loss = self._loss_fn(pooled_logits, labels)
+                # label smooth 
+                loss = self.label_smoother([pooled_logits], labels)
+                # loss = self._loss_fn(pooled_logits, labels)
 
                 loss = loss / self._gradient_accumulation_steps
                 running_loss += loss
