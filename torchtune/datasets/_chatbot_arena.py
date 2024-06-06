@@ -83,7 +83,7 @@ class ChatbotArenaDataset(Dataset):
     
 def chatbot_arena_dataset(
     tokenizer: Tokenizer,
-    source: str = "/root/dataDisk/full_train.csv",
+    source: str = "/root/dataDisk/lmsys/full_train.csv",
     max_seq_len: int = 4096,
 ) -> ChatbotArenaDataset:
     return ChatbotArenaDataset(

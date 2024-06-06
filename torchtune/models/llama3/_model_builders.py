@@ -51,7 +51,7 @@ def llama3_classifier_8b() -> TransformerDecoder:
         TransformerDecoder: Instantiation of Llama3 8B model
     """
     return llama3_classifier(
-        num_classes=10,
+        num_classes=30,
         vocab_size=128_257,
         num_layers=32,
         num_heads=32,
@@ -93,7 +93,7 @@ def llama3_classifier_70b() -> TransformerDecoder:
         TransformerDecoder: Instantiation of Llama3 70 model
     """
     return llama3_classifier(
-        num_classes=10,
+        num_classes=30,
         vocab_size=128_256,
         num_layers=80,
         num_heads=64,
